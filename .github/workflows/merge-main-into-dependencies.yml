@@ -1,0 +1,63 @@
+name: Merge main into dependency branch
+
+on:
+  schedule:
+    - cron: "0 12 * * 6" # 7am EST / 8am EDT — always ≥1hr before Dependabot at 9am ET
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  merge:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Skip if updates/dependencies is already up to date
+        id: check
+        run: |
+          git fetch origin main updates/dependencies
+          if git merge-base --is-ancestor origin/main origin/updates/dependencies; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "updates/dependencies already contains main; nothing to do."
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Open PR (main → updates/dependencies) and merge it as a merge commit
+        if: steps.check.outputs.skip == 'false'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # This repo is a fork. Without GH_REPO, gh resolves the *upstream*
+          # repo as the PR base and would open the PR against the parent.
+          GH_REPO: ${{ github.repository }}
+        run: |
+          # Reuse an existing open PR if one is already open for this exact head/base.
+          existing=$(gh pr list \
+            --base updates/dependencies --head main --state open \
+            --json number --jq '.[0].number // empty')
+          if [ -n "$existing" ]; then
+            pr="$existing"
+            echo "Reusing existing PR #$pr"
+          else
+            pr=$(gh pr create \
+              --base updates/dependencies \
+              --head main \
+              --title "chore: merge main into updates/dependencies" \
+              --body "Weekly catch-up merge so Dependabot diffs stay small. Merge-commit (not squash) preserves main as an ancestor of updates/dependencies." \
+              --label automation 2>/dev/null || \
+              gh pr create \
+                --base updates/dependencies \
+                --head main \
+                --title "chore: merge main into updates/dependencies" \
+                --body "Weekly catch-up merge so Dependabot diffs stay small. Merge-commit (not squash) preserves main as an ancestor of updates/dependencies.")
+            pr=$(echo "$pr" | grep -oE '[0-9]+$')
+            echo "Opened PR #$pr"
+          fi
+
+          # Merge as a true merge commit (not squash) so main's SHAs become ancestors.
+          gh pr merge "$pr" --merge --delete-branch=false
