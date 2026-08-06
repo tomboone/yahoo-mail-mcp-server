@@ -28,16 +28,16 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.26.0",
-    "cors": "^2.8.5",
-    "dotenv": "^17.2.1",
+    "@modelcontextprotocol/sdk": "^1.30.0",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
     "express": "^4.18.2",
-    "imap": "^0.8.17",
+    "imap": "^0.8.19",
     "mailparser": "^3.9.14"
   },
   "devDependencies": {
     "cross-env": "^7.0.3",
-    "nodemon": "^3.0.2"
+    "nodemon": "^3.1.14"
   },
   "engines": {
     "node": ">=20.0.0"
