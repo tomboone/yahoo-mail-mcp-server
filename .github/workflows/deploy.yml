@@ -1,11 +1,10 @@
-#file: noinspection YAMLSchemaValidation
 name: Build and Publish Image
 on:
   push:
     branches: [ main ]
 jobs:
   build-and-push:
-    runs-size: ubuntu-latest
+    runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
