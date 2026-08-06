@@ -20,3 +20,35 @@ jobs:
         run: node --check server.js
 
       - run: npm test
+
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Build image
+        run: docker build -t yahoo-mail-mcp:ci .
+
+      - name: Boot container and verify /health
+        run: |
+          docker run -d --name mcp -p 3000:3000 \
+            -e TRANSPORT_MODE=sse -e PORT=3000 \
+            yahoo-mail-mcp:ci
+
+          code=000
+          for _ in $(seq 1 30); do
+            code=$(curl -s -o health.json -w '%{http_code}' http://localhost:3000/health) || code=000
+            [ "$code" = "200" ] && break
+            sleep 2
+          done
+
+          echo "--- container logs ---"
+          docker logs mcp
+
+          if [ "$code" != "200" ]; then
+            echo "::error::/health returned $code (expected 200) — the image builds but does not run"
+            exit 1
+          fi
+
+          echo "--- /health ---"
+          cat health.json
