@@ -32,9 +32,6 @@ jobs:
         if: steps.check.outputs.skip == 'false'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # This repo is a fork. Without GH_REPO, gh resolves the *upstream*
-          # repo as the PR base and would open the PR against the parent.
-          GH_REPO: ${{ github.repository }}
         run: |
           # Reuse an existing open PR if one is already open for this exact head/base.
           existing=$(gh pr list \
