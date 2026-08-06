@@ -2,7 +2,7 @@
 # Multi-stage build for optimized production image
 # Works on both Windows Docker Desktop and Linux Docker
 
-FROM node:18-alpine AS base
+FROM node:22-alpine AS base
 
 # Install dependencies needed for native modules
 RUN apk add --no-cache \
@@ -29,6 +29,7 @@ RUN npm ci --only=production
 
 # Copy application code
 COPY server.js ./
+COPY lib ./lib
 
 # Create a non-root user for security
 RUN addgroup -g 1001 -S nodejs && \

@@ -14,6 +14,9 @@ import { simpleParser } from 'mailparser';
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import * as helpers from './lib/helpers.js';
 
 // Load environment variables from .env file (for local development)
 dotenv.config();
@@ -802,24 +805,7 @@ class YahooMailMCPServer {
      * @returns {string|null} Error message if invalid, null if valid
      */
     validateSequenceNumbers(sequenceNumbers) {
-        if (!sequenceNumbers) {
-            return 'sequenceNumbers is required';
-        }
-
-        if (!Array.isArray(sequenceNumbers)) {
-            return 'sequenceNumbers must be an array';
-        }
-
-        if (sequenceNumbers.length === 0) {
-            return 'sequenceNumbers cannot be empty';
-        }
-
-        const invalidValues = sequenceNumbers.filter(n => n === undefined || n === null || typeof n !== 'number');
-        if (invalidValues.length > 0) {
-            return 'sequenceNumbers contains invalid values (must be numbers)';
-        }
-
-        return null;
+        return helpers.validateSequenceNumbers(sequenceNumbers);
     }
 
     /**
@@ -1111,85 +1097,21 @@ class YahooMailMCPServer {
      * Helper: Detect if email has attachments from BODYSTRUCTURE
      */
     hasAttachments(struct) {
-        if (!struct || !Array.isArray(struct)) return false;
-
-        // Recursive check for attachment disposition
-        const checkPart = (part) => {
-            if (!part) return false;
-
-            // Check if this part is an attachment
-            if (part.disposition && part.disposition.type === 'attachment') {
-                return true;
-            }
-
-            // Recursively check sub-parts
-            if (Array.isArray(part)) {
-                return part.some(p => checkPart(p));
-            }
-
-            return false;
-        };
-
-        return checkPart(struct);
+        return helpers.hasAttachments(struct);
     }
 
     /**
      * Helper: Flatten nested folder structure for list_folders
      */
     flattenFolders(boxes, parent = null) {
-        const result = [];
-
-        for (const [name, box] of Object.entries(boxes)) {
-            const fullName = parent ? `${parent}/${name}` : name;
-
-            // Skip NOSELECT folders (can't select them)
-            const isNoSelect = box.attribs && box.attribs.includes('\\Noselect');
-
-            result.push({
-                name: fullName,
-                delimiter: box.delimiter || '/',
-                flags: box.attribs || [],
-                selectable: !isNoSelect
-            });
-
-            // Recursively process children
-            if (box.children) {
-                result.push(...this.flattenFolders(box.children, fullName));
-            }
-        }
-
-        return result;
+        return helpers.flattenFolders(boxes, parent);
     }
 
     /**
      * Helper: Validate UIDs array
      */
     validateUIDs(uids) {
-        if (!uids) {
-            return 'uids is required';
-        }
-
-        if (!Array.isArray(uids)) {
-            return 'uids must be an array';
-        }
-
-        if (uids.length === 0) {
-            return 'uids cannot be empty';
-        }
-
-        const invalidValues = uids.filter(n =>
-            n === undefined ||
-            n === null ||
-            typeof n !== 'number' ||
-            n <= 0 ||
-            !Number.isInteger(n)
-        );
-
-        if (invalidValues.length > 0) {
-            return 'uids contains invalid values (must be positive integers)';
-        }
-
-        return null;
+        return helpers.validateUIDs(uids);
     }
 
     /**
@@ -1695,6 +1617,14 @@ class YahooMailMCPServer {
     }
 }
 
-// Start the server
-const server = new YahooMailMCPServer();
-server.run().catch(console.error);
+export default YahooMailMCPServer;
+
+// Start the server only when run directly, so tests can import this module
+// without spawning a listener.
+const isMain = process.argv[1] &&
+    path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+
+if (isMain) {
+    const server = new YahooMailMCPServer();
+    server.run().catch(console.error);
+}

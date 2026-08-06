@@ -6,6 +6,7 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
+    "test": "node --test",
     "start:stdio": "cross-env TRANSPORT_MODE=stdio node server.js",
     "start:sse": "cross-env TRANSPORT_MODE=sse PORT=3000 node server.js",
     "dev": "cross-env TRANSPORT_MODE=sse PORT=3000 nodemon server.js",
@@ -39,6 +40,6 @@
     "nodemon": "^3.0.2"
   },
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=20.0.0"
   }
 }
