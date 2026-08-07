@@ -23,6 +23,11 @@ RUN npm ci
 
 FROM base AS production
 
+# Links the pushed image to its source repo on GHCR. Without this, a package
+# created outside Actions has no repo association and the workflow's
+# GITHUB_TOKEN cannot write to it.
+LABEL org.opencontainers.image.source=https://github.com/tomboone/yahoo-mail-mcp-server
+
 # Copy only production dependencies
 COPY package*.json ./
 RUN npm ci --only=production
