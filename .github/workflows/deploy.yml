@@ -17,3 +17,38 @@ jobs:
         run: |
           docker build -t ghcr.io/${{ github.repository }}:latest .
           docker push ghcr.io/${{ github.repository }}:latest
+
+  deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # required for OIDC federated credential
+    steps:
+      - uses: azure/login@v3
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      # Re-setting the image forces App Service to pull. A plain restart can
+      # reuse the cached layer when the :latest tag is unchanged.
+      - name: Deploy container to App Service
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: yahoo-mail-mcp
+          images: ghcr.io/${{ github.repository }}:latest
+
+      - name: Verify the new container is serving
+        run: |
+          for _ in $(seq 1 30); do
+            code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 10 \
+              https://yahoo-mail-mcp.azurewebsites.net/health) || code=000
+            [ "$code" = "200" ] && break
+            sleep 10
+          done
+          if [ "$code" != "200" ]; then
+            echo "::error::/health returned $code after deploy"
+            exit 1
+          fi
+          curl -fsS https://yahoo-mail-mcp.azurewebsites.net/health
