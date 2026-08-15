@@ -33,7 +33,7 @@
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "imap": "^0.8.19",
-    "mailparser": "^3.9.14"
+    "mailparser": "^3.9.15"
   },
   "devDependencies": {
     "cross-env": "^10.1.0",
