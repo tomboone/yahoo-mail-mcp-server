@@ -30,10 +30,10 @@
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.30.0",
     "cors": "^2.8.6",
-    "dotenv": "^17.4.2",
+    "dotenv": "^18.0.3",
     "express": "^5.2.1",
     "imap": "^0.8.19",
-    "mailparser": "^3.9.23"
+    "mailparser": "^3.9.28"
   },
   "devDependencies": {
     "cross-env": "^10.1.0",
