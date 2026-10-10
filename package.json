@@ -28,12 +28,12 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.31.0",
+    "@modelcontextprotocol/sdk": "^1.32.1",
     "cors": "^2.8.6",
-    "dotenv": "^18.0.4",
+    "dotenv": "^18.0.6",
     "express": "^5.2.1",
     "imap": "^0.8.19",
-    "mailparser": "^3.9.32"
+    "mailparser": "^3.9.36"
   },
   "devDependencies": {
     "cross-env": "^10.1.0",
