@@ -13,13 +13,10 @@ RUN apk add --no-cache \
 
 WORKDIR /app
 
-# Copy package files
-COPY package*.json ./
-
-FROM base AS dependencies
-
-# Install all dependencies (including dev dependencies for building)
-RUN npm ci
+# pnpm at the version package.json's packageManager pins, via Corepack. No prompt:
+# the build has no TTY to answer Corepack's download question.
+ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
+RUN corepack enable
 
 FROM base AS production
 
@@ -28,9 +25,9 @@ FROM base AS production
 # GITHUB_TOKEN cannot write to it.
 LABEL org.opencontainers.image.source=https://github.com/tomboone/yahoo-mail-mcp-server
 
-# Copy only production dependencies
-COPY package*.json ./
-RUN npm ci --only=production
+# Install only production dependencies
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+RUN pnpm install --frozen-lockfile --prod
 
 # Copy application code
 COPY server.js ./

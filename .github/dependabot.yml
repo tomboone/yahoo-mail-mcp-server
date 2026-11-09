@@ -1,36 +1,33 @@
 version: 2
 updates:
-  - package-ecosystem: github-actions
+  - package-ecosystem: npm # covers pnpm
     directory: /
+    target-branch: updates/dependencies
     schedule:
       interval: weekly
       day: saturday
       time: "09:00"
       timezone: America/New_York
-    target-branch: updates/dependencies
-    commit-message:
-      prefix: ci
-      include: scope
-    groups:
-      minor-and-patch:
-        update-types:
-          - minor
-          - patch
-
-  - package-ecosystem: npm
-    directory: /
-    schedule:
-      interval: weekly
-      day: saturday
-      time: "09:00"
-      timezone: America/New_York
-    target-branch: updates/dependencies
     commit-message:
       prefix: build
       prefix-development: build
-      include: scope
     groups:
       minor-and-patch:
-        update-types:
-          - minor
-          - patch
+        update-types: [minor, patch]
+
+  - package-ecosystem: github-actions
+    directory: /
+    target-branch: updates/dependencies
+    schedule:
+      interval: weekly
+      day: saturday
+      time: "09:00"
+      timezone: America/New_York
+    commit-message:
+      prefix: ci
+    # The shared workflows float on @v1; bumping them is the workflows repo's job.
+    ignore:
+      - dependency-name: neuroticsasquat-ch/workflows
+    groups:
+      minor-and-patch:
+        update-types: [minor, patch]

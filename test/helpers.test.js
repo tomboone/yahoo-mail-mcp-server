@@ -5,7 +5,8 @@ import {
     validateUIDs,
     validateSequenceNumbers,
     hasAttachments,
-    flattenFolders
+    flattenFolders,
+    addressText
 } from '../lib/helpers.js';
 
 describe('validateUIDs', () => {
@@ -170,5 +171,25 @@ describe('flattenFolders', () => {
         const [folder] = flattenFolders(boxes);
         assert.equal(folder.delimiter, '.');
         assert.deepEqual(folder.flags, ['\\HasChildren']);
+    });
+});
+
+describe('addressText', () => {
+    const address = text => ({ value: [], html: text, text });
+
+    test('returns the text of a single address object', () => {
+        assert.equal(addressText(address('Ann <ann@example.com>')), 'Ann <ann@example.com>');
+    });
+
+    test('joins the text of each address object in an array', () => {
+        assert.equal(
+            addressText([address('Ann <ann@example.com>'), address('Bob <bob@example.com>')]),
+            'Ann <ann@example.com>, Bob <bob@example.com>'
+        );
+    });
+
+    test('returns an empty string for a missing field', () => {
+        assert.equal(addressText(undefined), '');
+        assert.equal(addressText([]), '');
     });
 });

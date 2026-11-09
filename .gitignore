@@ -37,7 +37,6 @@ Thumbs.db
 Desktop.ini
 
 # Personal notes and debug files
-CLAUDE.md
 debug.log
 *.tmp
 *.log
