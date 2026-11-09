@@ -1,0 +1,4 @@
+# utf7 (via imap) pins semver 5.3.0, which has a ReDoS advisory; 5.7.2 is the
+# patched release in the same major.
+overrides:
+  "utf7>semver": ^5.7.2

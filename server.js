@@ -21,6 +21,25 @@ import * as helpers from './lib/helpers.js';
 // Load environment variables from .env file (for local development)
 dotenv.config();
 
+/**
+ * Arguments a tools/call request can carry: the union of every tool's
+ * inputSchema properties. This describes what clients are asked to send; the
+ * SDK doesn't validate against inputSchema, so it is not a runtime guarantee.
+ *
+ * @typedef {object} ToolArguments
+ * @property {number} [count]
+ * @property {number} [offset]
+ * @property {string} [folder]
+ * @property {string} [query]
+ * @property {string} [dateFrom]
+ * @property {string} [dateTo]
+ * @property {string} [sender]
+ * @property {boolean} [unreadOnly]
+ * @property {number[]} [uids]
+ * @property {string} [folderName]
+ * @property {string} [sourceFolder]
+ */
+
 class YahooMailMCPServer {
     constructor() {
         this.server = new Server(
@@ -313,7 +332,9 @@ class YahooMailMCPServer {
 
         // Handle tool execution
         this.server.setRequestHandler(CallToolRequestSchema, async (request) => {
-            const { name, arguments: args } = request.params;
+            const { name } = request.params;
+            /** @type {ToolArguments} */
+            const args = request.params.arguments;
 
             try {
                 switch (name) {
@@ -542,7 +563,7 @@ class YahooMailMCPServer {
                     let header = '';
                     let attrs = null;
 
-                    msg.on('body', (stream, info) => {
+                    msg.on('body', (stream) => {
                         stream.on('data', (chunk) => {
                             header += chunk.toString('ascii');
                         });
@@ -644,7 +665,7 @@ class YahooMailMCPServer {
         const imap = await this.createImapConnection();
 
         return new Promise((resolve, reject) => {
-            imap.openBox(folder, true, (err, box) => {
+            imap.openBox(folder, true, (err) => {
                 if (err) {
                     imap.end();
                     reject(new Error(`Failed to open folder "${folder}": ${err.message}`));
@@ -675,7 +696,7 @@ class YahooMailMCPServer {
                         if (!isNaN(fromDate.getTime())) {
                             criteria.push(['SINCE', fromDate]);
                         }
-                    } catch (e) {
+                    } catch {
                         imap.end();
                         reject(new Error(`Invalid dateFrom format: ${dateFrom}. Use ISO 8601 format.`));
                         return;
@@ -688,7 +709,7 @@ class YahooMailMCPServer {
                         if (!isNaN(toDate.getTime())) {
                             criteria.push(['BEFORE', toDate]);
                         }
-                    } catch (e) {
+                    } catch {
                         imap.end();
                         reject(new Error(`Invalid dateTo format: ${dateTo}. Use ISO 8601 format.`));
                         return;
@@ -745,7 +766,7 @@ class YahooMailMCPServer {
                         let header = '';
                         let attrs = null;
 
-                        msg.on('body', (stream, info) => {
+                        msg.on('body', (stream) => {
                             stream.on('data', (chunk) => {
                                 header += chunk.toString('ascii');
                             });
@@ -826,7 +847,7 @@ class YahooMailMCPServer {
         const imap = await this.createImapConnection();
 
         return new Promise((resolve, reject) => {
-            imap.openBox(folder, false, (err, box) => {  // false = read-write mode
+            imap.openBox(folder, false, (err) => {  // false = read-write mode
                 if (err) {
                     imap.end();
                     reject(new Error(`Failed to open folder "${folder}": ${err.message}`));
@@ -906,7 +927,7 @@ class YahooMailMCPServer {
         const imap = await this.createImapConnection();
 
         return new Promise((resolve, reject) => {
-            imap.openBox(folder, true, (err, box) => {  // true = read-only mode
+            imap.openBox(folder, true, (err) => {  // true = read-only mode
                 if (err) {
                     imap.end();
                     reject(new Error(`Failed to open folder "${folder}": ${err.message}`));
@@ -928,7 +949,7 @@ class YahooMailMCPServer {
                     let buffer = '';
                     let attrs = null;
 
-                    msg.on('body', (stream, info) => {
+                    msg.on('body', (stream) => {
                         stream.on('data', (chunk) => {
                             buffer += chunk.toString('ascii');
                         });
@@ -950,7 +971,7 @@ class YahooMailMCPServer {
                                 uid: attrs.uid,
                                 sequenceNumber: seqno,  // Still include for reference
                                 from: parsed.from?.text || 'Unknown',
-                                to: parsed.to?.text || 'Unknown',
+                                to: helpers.addressText(parsed.to) || 'Unknown',
                                 subject: parsed.subject || 'No Subject',
                                 date: parsed.date || 'Unknown Date',
                                 size: attrs.size || 0,
@@ -1349,10 +1370,16 @@ class YahooMailMCPServer {
                 return res.status(400).send('Unsupported response_type');
             }
 
-            // Validate redirect_uri (must be Claude's callback)
-            if (!redirect_uri || (!redirect_uri.includes('claude.ai') && !redirect_uri.includes('claude.com') && !redirect_uri.includes('localhost'))) {
+            // Validate redirect_uri (must be Claude's callback). A repeated or
+            // bracketed query parameter parses to an array or object: reject it.
+            if (typeof redirect_uri !== 'string' || (!redirect_uri.includes('claude.ai') && !redirect_uri.includes('claude.com') && !redirect_uri.includes('localhost'))) {
                 console.error('[OAuth] Invalid redirect_uri:', redirect_uri);
                 return res.status(400).send('Invalid redirect_uri');
+            }
+
+            if (state !== undefined && typeof state !== 'string') {
+                console.error('[OAuth] Invalid state in authorize request');
+                return res.status(400).send('Invalid state');
             }
 
             // Generate authorization code
@@ -1374,7 +1401,7 @@ class YahooMailMCPServer {
             // Redirect back to Claude with authorization code
             const redirectUrl = new URL(redirect_uri);
             redirectUrl.searchParams.append('code', authCode);
-            if (state) redirectUrl.searchParams.append('state', state);
+            if (typeof state === 'string' && state) redirectUrl.searchParams.append('state', state);
 
             res.redirect(redirectUrl.toString());
         });
@@ -1419,7 +1446,7 @@ class YahooMailMCPServer {
 
             // Handle Authorization Code Grant (with PKCE)
             if (grantType === 'authorization_code') {
-                const { code, redirect_uri, code_verifier } = req.body;
+                const { code, code_verifier } = req.body;
 
                 console.error('[OAuth] Authorization code grant - validating code');
 
@@ -1575,7 +1602,7 @@ class YahooMailMCPServer {
         });
 
         // Error handling middleware
-        app.use((err, req, res, next) => {
+        app.use((err, req, res, _next) => {
             console.error('[Express] Error:', err);
             res.status(500).json({
                 error: 'Internal server error',

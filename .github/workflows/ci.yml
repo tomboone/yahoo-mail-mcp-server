@@ -1,0 +1,83 @@
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+# A newer push to a PR cancels its older run; runs on main are never cancelled.
+concurrency:
+  group: ci-${{ github.event_name == 'pull_request' && github.ref || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+jobs:
+  # pnpm install --frozen-lockfile, then the lint, typecheck, test and build package scripts.
+  js:
+    uses: neuroticsasquat-ch/workflows/.github/workflows/js.yml@v1
+
+  # Builds the image without pushing, checks it doesn't run as root, runs .github/ci/smoke.sh.
+  image:
+    uses: neuroticsasquat-ch/workflows/.github/workflows/image-check.yml@v1
+
+  ci: # the one required check; the name is the contract
+    if: always()
+    needs: [js, image] # every other job, extras included
+    runs-on: ubuntu-latest
+    steps:
+      - uses: neuroticsasquat-ch/workflows/actions/gate@v1
+        with:
+          needs: ${{ toJSON(needs) }}
+
+  # main → latest and sha-<7>, only after ci passed on that commit.
+  publish:
+    if: ${{ !cancelled() && github.event_name == 'push' && needs.ci.result == 'success' }}
+    needs: ci
+    concurrency: { group: "publish-${{ github.ref }}", cancel-in-progress: false }
+    permissions: { contents: read, packages: write }
+    uses: neuroticsasquat-ch/workflows/.github/workflows/image-publish.yml@v1
+    with:
+      image: ghcr.io/tomboone/yahoo-mail-mcp-server
+
+  # Points App Service at latest once it's published. Not part of the ci gate: it
+  # runs after it. latest only moves while the commit is the tip of main, so a
+  # late-finishing older run re-deploys the newer image instead of rolling back.
+  # To redeploy without a commit, re-run this job on the latest main run.
+  azure-deploy:
+    if: ${{ !cancelled() && needs.publish.result == 'success' }}
+    needs: publish
+    runs-on: ubuntu-latest
+    concurrency: { group: "azure-deploy", cancel-in-progress: false }
+    permissions:
+      contents: read
+      id-token: write # required for OIDC federated credential
+    steps:
+      - uses: azure/login@v3
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      # Re-setting the image forces App Service to pull. A plain restart can
+      # reuse the cached layer when the :latest tag is unchanged.
+      - name: Deploy container to App Service
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: yahoo-mail-mcp
+          images: ghcr.io/${{ github.repository }}:latest
+
+      - name: Verify the new container is serving
+        run: |
+          for _ in $(seq 1 30); do
+            code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 10 \
+              https://yahoo-mail-mcp.azurewebsites.net/health) || code=000
+            [ "$code" = "200" ] && break
+            sleep 10
+          done
+          if [ "$code" != "200" ]; then
+            echo "::error::/health returned $code after deploy"
+            exit 1
+          fi
+          curl -fsS https://yahoo-mail-mcp.azurewebsites.net/health

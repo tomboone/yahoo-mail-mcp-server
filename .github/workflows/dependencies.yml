@@ -1,0 +1,25 @@
+name: dependencies
+
+on:
+  push:
+    branches: [updates/dependencies]
+  schedule:
+    - cron: "0 11 * * *" # daily, before Dependabot's Saturday 09:00 ET run
+    - cron: "*/30 13-23 * * 6" # every 30 min on Saturdays, covering the window in EST and EDT
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dependencies
+  cancel-in-progress: false
+
+jobs:
+  # Syncs updates/dependencies with main, auto-merges Dependabot PRs into it, and promotes it to main.
+  dependency-branch:
+    uses: neuroticsasquat-ch/workflows/.github/workflows/dependency-branch.yml@v1
+    with:
+      auto-promote: true
+    secrets:
+      app-private-key: ${{ secrets.AUTOMATION_APP_PRIVATE_KEY }}

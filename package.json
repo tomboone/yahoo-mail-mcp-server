@@ -4,9 +4,13 @@
   "description": "Yahoo Mail MCP Server - Full email management via IMAP",
   "type": "module",
   "main": "server.js",
+  "packageManager": "pnpm@12.18.0",
   "scripts": {
     "start": "node server.js",
+    "lint": "oxlint --max-warnings 0",
+    "typecheck": "tsc -p jsconfig.json",
     "test": "node --test",
+    "build": "node --input-type=module -e \"await import('./server.js')\"",
     "start:stdio": "cross-env TRANSPORT_MODE=stdio node server.js",
     "start:sse": "cross-env TRANSPORT_MODE=sse PORT=3000 node server.js",
     "dev": "cross-env TRANSPORT_MODE=sse PORT=3000 nodemon server.js",
@@ -36,15 +40,17 @@
     "mailparser": "^3.14.2"
   },
   "devDependencies": {
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/imap": "^0.8.43",
+    "@types/mailparser": "^3.9.0",
+    "@types/node": "^22.20.5",
     "cross-env": "^10.1.0",
-    "nodemon": "^3.1.14"
+    "nodemon": "^3.1.14",
+    "oxlint": "^1.92.0",
+    "typescript": "^7.0.2"
   },
   "engines": {
     "node": ">=20.0.0"
-  },
-  "overrides": {
-    "utf7": {
-      "semver": "^5.7.2"
-    }
   }
 }

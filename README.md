@@ -80,31 +80,34 @@ PORT=3000
 
 ### 4. Install Dependencies
 
+The repo uses pnpm, at the version `package.json`'s `packageManager` field pins.
+If you don't have it, `corepack enable` (Node 22) or `brew install pnpm` provides it.
+
 **Windows (PowerShell):**
 ```powershell
-npm install
+pnpm install
 ```
 
 **Linux/macOS (Bash):**
 ```bash
-npm install
+pnpm install
 ```
 
 ### 5. Run Locally
 
 **stdio mode (for Claude Desktop):**
 ```bash
-npm run start:stdio
+pnpm run start:stdio
 ```
 
 **SSE mode (for testing HTTP endpoint):**
 ```bash
-npm run start:sse
+pnpm run start:sse
 ```
 
 **Development mode (with auto-reload):**
 ```bash
-npm run dev
+pnpm run dev
 ```
 
 ## Docker Usage
@@ -114,37 +117,37 @@ npm run dev
 **Windows (PowerShell):**
 ```powershell
 # Build the image
-npm run docker:build
+pnpm run docker:build
 
 # Run the container
-npm run docker:run
+pnpm run docker:run
 
 # Or use Docker Compose (recommended)
-npm run docker:compose:up
+pnpm run docker:compose:up
 
 # View logs
-npm run docker:compose:logs
+pnpm run docker:compose:logs
 
 # Stop containers
-npm run docker:compose:down
+pnpm run docker:compose:down
 ```
 
 **Linux/macOS (Bash):**
 ```bash
 # Build the image
-npm run docker:build
+pnpm run docker:build
 
 # Run the container
-npm run docker:run
+pnpm run docker:run
 
 # Or use Docker Compose (recommended)
-npm run docker:compose:up
+pnpm run docker:compose:up
 
 # View logs
-npm run docker:compose:logs
+pnpm run docker:compose:logs
 
 # Stop containers
-npm run docker:compose:down
+pnpm run docker:compose:down
 ```
 
 ### Manual Docker Commands
@@ -187,8 +190,8 @@ docker-compose up -d
 
 **Windows (PowerShell):**
 ```powershell
-# Using npm script
-npm run test:health
+# Using pnpm script
+pnpm run test:health
 
 # Using curl (if installed)
 curl http://localhost:3000/health
@@ -199,8 +202,8 @@ Invoke-WebRequest -Uri http://localhost:3000/health | Select-Object -Expand Cont
 
 **Linux/macOS (Bash):**
 ```bash
-# Using npm script
-npm run test:health
+# Using pnpm script
+pnpm run test:health
 
 # Using curl
 curl http://localhost:3000/health
@@ -210,8 +213,8 @@ curl http://localhost:3000/health
 
 **Windows (PowerShell):**
 ```powershell
-# Using npm script
-npm run test:sse
+# Using pnpm script
+pnpm run test:sse
 
 # Using curl
 curl http://localhost:3000/mcp/sse
@@ -222,8 +225,8 @@ Invoke-WebRequest -Uri http://localhost:3000/mcp/sse
 
 **Linux/macOS (Bash):**
 ```bash
-# Using npm script
-npm run test:sse
+# Using pnpm script
+pnpm run test:sse
 
 # Using curl
 curl http://localhost:3000/mcp/sse
@@ -385,12 +388,12 @@ Can you search for emails from john@example.com?
 
 **Windows (PowerShell):**
 ```powershell
-$env:PORT=3001; npm run start:sse
+$env:PORT=3001; pnpm run start:sse
 ```
 
 **Linux/macOS (Bash):**
 ```bash
-PORT=3001 npm run start:sse
+PORT=3001 pnpm run start:sse
 ```
 
 Or edit `.env`:
@@ -440,14 +443,14 @@ git config --global core.autocrlf input
 git clone <your-repo-url>
 ```
 
-#### npm Scripts Not Working
+#### Package Scripts Not Working
 
 If cross-platform scripts fail:
 
 **PowerShell:**
 ```powershell
 # Install cross-env globally
-npm install -g cross-env
+pnpm add -g cross-env
 
 # Or run scripts directly
 node server.js
@@ -483,21 +486,25 @@ docker ps
 
 **Note**: `OAUTH_CLIENT_ID` and `OAUTH_CLIENT_SECRET` are only required for remote deployments (Render.com). Local stdio mode doesn't require OAuth.
 
-## Available npm Scripts
+## Available Scripts
 
 | Script | Description | Cross-Platform |
 |--------|-------------|----------------|
-| `npm start` | Start server (stdio mode) | ✅ |
-| `npm run start:stdio` | Start in stdio mode | ✅ |
-| `npm run start:sse` | Start in SSE mode | ✅ |
-| `npm run dev` | Development mode with auto-reload | ✅ |
-| `npm run docker:build` | Build Docker image | ✅ |
-| `npm run docker:run` | Run Docker container | ✅ |
-| `npm run docker:compose:up` | Start with Docker Compose | ✅ |
-| `npm run docker:compose:down` | Stop Docker Compose | ✅ |
-| `npm run docker:compose:logs` | View Docker Compose logs | ✅ |
-| `npm run test:health` | Test health endpoint | ✅ |
-| `npm run test:sse` | Test SSE endpoint | ✅ |
+| `pnpm start` | Start server (stdio mode) | ✅ |
+| `pnpm run start:stdio` | Start in stdio mode | ✅ |
+| `pnpm run start:sse` | Start in SSE mode | ✅ |
+| `pnpm run dev` | Development mode with auto-reload | ✅ |
+| `pnpm run docker:build` | Build Docker image | ✅ |
+| `pnpm run docker:run` | Run Docker container | ✅ |
+| `pnpm run docker:compose:up` | Start with Docker Compose | ✅ |
+| `pnpm run docker:compose:down` | Stop Docker Compose | ✅ |
+| `pnpm run docker:compose:logs` | View Docker Compose logs | ✅ |
+| `pnpm run test:health` | Test health endpoint | ✅ |
+| `pnpm run test:sse` | Test SSE endpoint | ✅ |
+| `pnpm run lint` | oxlint, failing on any warning | ✅ |
+| `pnpm run typecheck` | tsc over the JS sources (`jsconfig.json`) | ✅ |
+| `pnpm run test` | Unit tests (`node --test`) | ✅ |
+| `pnpm run build` | Load `server.js` and its whole import graph | ✅ |
 
 ## Project Structure
 
@@ -559,10 +566,10 @@ yahoo-mail-mcp-server/
 # 1. Make your changes to server.js
 
 # 2. Test locally
-npm run dev
+pnpm run dev
 
 # 3. Test with Docker
-npm run docker:compose:up
+pnpm run docker:compose:up
 
 # 4. Commit and push
 git add .
@@ -577,10 +584,10 @@ git push origin main
 # 1. Make your changes to server.js
 
 # 2. Test locally
-npm run dev
+pnpm run dev
 
 # 3. Test with Docker
-npm run docker:compose:up
+pnpm run docker:compose:up
 
 # 4. Commit and push
 git add .
@@ -595,12 +602,12 @@ git push origin main
 **Local Development:**
 ```bash
 # The server logs to stderr
-npm run start:sse
+pnpm run start:sse
 ```
 
 **Docker:**
 ```bash
-npm run docker:compose:logs
+pnpm run docker:compose:logs
 ```
 
 **Render.com:**
